@@ -15,7 +15,7 @@
 #include "filehdr.h"
 #include "openfile.h"
 #include "system.h"
-#include "filesys.h"
+
 //----------------------------------------------------------------------
 // OpenFile::OpenFile
 // 	Open a Nachos file for reading and writing.  Bring the file header
@@ -29,7 +29,6 @@ OpenFile::OpenFile(int sector)
     hdr = new FileHeader;
     hdr->FetchFrom(sector);
     seekPosition = 0;
-    hdrSector=sector;   //打开文件的文件头所在的扇区号 
 }
 
 //----------------------------------------------------------------------
@@ -148,20 +147,11 @@ OpenFile::WriteAt(char *from, int numBytes, int position)
     int i, firstSector, lastSector, numSectors;
     bool firstAligned, lastAligned;
     char *buf;
-    
-    if ((numBytes <= 0) || (position > fileLength))
-	return -1;				// check request
-    if ((position + numBytes) > fileLength) {  //约束 2 
-        int incrementBytes = (position + numBytes) - fileLength; 
-        BitMap *freeBitMap = fileSystem-> getBitMap();    
-        //自己实现 
-        bool hdrRet; 
-        hdrRet = hdr->Allocate(freeBitMap, fileLength, incrementBytes);  //自己实现 
-        if ( !hdrRet )   
-        // Insuficient Disk Space, or File is Too Big 
-        return -1;  
-        fileSystem-> setBitMap(freeBitMap); //自己实现 
-        } 
+
+    if ((numBytes <= 0) || (position >= fileLength))
+	return 0;				// check request
+    if ((position + numBytes) > fileLength)
+	numBytes = fileLength - position;
     DEBUG('f', "Writing %d bytes at %d, from file of length %d.\n", 	
 			numBytes, position, fileLength);
 
@@ -190,11 +180,6 @@ OpenFile::WriteAt(char *from, int numBytes, int position)
 					&buf[(i - firstSector) * SectorSize]);
     delete [] buf;
     return numBytes;
-}
-
-void OpenFile::WriteBack()
-{
-    hdr->WriteBack(hdrSector);
 }
 
 //----------------------------------------------------------------------

@@ -338,16 +338,4 @@ FileSystem::Print()
     delete dirHdr;
     delete freeMap;
     delete directory;
-}
-BitMap *FileSystem::getBitMap()
-{
-    //numSector: DISK 上总扇区数（共有32*32=1024个扇区） 
-    BitMap *freeBitMap = new BitMap(numSector);   
-    freeBitMap->FetchFrom(freeMapFile); 
-    return freeBitMap; 
-}
-
-void FileSystem::setBitMap(BitMap *freeMap)
-{
-    freeMap->WriteBack(freeMapFile); 
-}
+} 
