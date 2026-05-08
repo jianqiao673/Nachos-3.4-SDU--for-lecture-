@@ -125,6 +125,11 @@ AddrSpace::~AddrSpace()
    delete [] pageTable;
 }
 
+int AddrSpace::GetspaceID()
+{
+    return spaceID;
+}
+
 //----------------------------------------------------------------------
 // AddrSpace::InitRegisters
 // 	Set the initial values for the user-level register set.

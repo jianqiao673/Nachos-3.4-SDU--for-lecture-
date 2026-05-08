@@ -24,7 +24,7 @@
 #include "copyright.h"
 #include "system.h"
 #include "syscall.h"
-
+#include "openfile.h"
 //----------------------------------------------------------------------
 // ExceptionHandler
 // 	Entry point into the Nachos kernel.  Called when a user program
@@ -48,16 +48,59 @@
 //	are in machine.h.
 //----------------------------------------------------------------------
 
+void  AdvancePC() { 
+    machine->WriteRegister(PCReg, machine->ReadRegister(PCReg) + 4); 
+    machine->WriteRegister(NextPCReg, machine->ReadRegister(NextPCReg) + 4); 
+} 
+
+void StartProcess(int spaceId) 
+{ 
+    AddrSpace *space = AddrSpaces[spaceId];
+    space->InitRegisters(); // set the initial register values 
+    space->RestoreState();  // load page table register 
+ 
+    machine->Run();   // jump to the user progam 
+    ASSERT(FALSE);  // machine->Run never returns; 
+           // the address space exits by doing the syscall "exit" 
+}
+
 void
 ExceptionHandler(ExceptionType which)
 {
-    int type = machine->ReadRegister(2);
-
-    if ((which == SyscallException) && (type == SC_Halt)) {
-	DEBUG('a', "Shutdown, initiated by user program.\n");
-   	interrupt->Halt();
-    } else {
-	printf("Unexpected user mode exception %d %d\n", which, type);
-	ASSERT(FALSE);
+    int type = machine->ReadRegister(2); 
+    if ((which == SyscallException)) { 
+        switch(type){ 
+            case SC_Halt:{ 
+                DEBUG('a', "Shutdown, initiated by user program.\n"); 
+                interrupt->Halt(); 
+                break; 
+            } 
+            case SC_Exec:{  char filename[128];  
+                int addr=machine->ReadRegister(4);   
+                int i=0; 
+                do{ 
+                    machine->ReadMem(addr+i,1,(int *)&filename[i]); 
+                }while(filename[i++]!='\0'); 
+                OpenFile *executable = fileSystem->Open(filename);  
+                if (executable == NULL) { 
+                    printf("Unable to open file %s\n", filename); 
+                    return; 
+                } 
+                //new address space 
+                AddrSpace* space = new AddrSpace(executable);   
+                space->Print();
+                delete executable;   
+                // close file 
+                //new and fork thread 
+                char *forkedThreadName=filename; 
+                Thread* thread = new Thread(forkedThreadName); 
+                thread->Fork(StartProcess, space->GetspaceID()); 
+                thread->space = space;  //用户线程映射到核心线程 
+                //return spaceID 
+                machine->WriteRegister(2,space->GetspaceID()); 
+                AdvancePC();     
+                break; 
+            } 
+        }
     }
 }
