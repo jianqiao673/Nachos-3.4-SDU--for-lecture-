@@ -25,6 +25,7 @@
 #include "system.h"
 #include "syscall.h"
 #include "openfile.h"
+#include <ctype.h>
 //----------------------------------------------------------------------
 // ExceptionHandler
 // 	Entry point into the Nachos kernel.  Called when a user program
@@ -47,7 +48,13 @@
 //	"which" is the kind of exception.  The list of possible exceptions 
 //	are in machine.h.
 //----------------------------------------------------------------------
-
+extern char* numFormat(int num); //将数字格式化为字符串，添加逗
+extern char* EraseStrChar(char* str, char ch); //删除字符串str中的字符ch，返回删除后的字符串
+extern void  Print(char *file); //打印文件内容
+extern void  NAppend(char *from, char *to); //将nachosFile文件内容追加到nachosFileTo文件末尾
+extern void  Copy(char *from, char *to); //将unixFile文件内容复制到nachosFile文件中
+extern void  Append(char *from, char *to, int half); //将unixFile文件内容追加到nachosFile文件末尾，half=1表示追加前半部分，half=2表示追加后半部分
+extern void  PerformanceTest(void); //性能测试
 void  AdvancePC() { 
     machine->WriteRegister(PCReg, machine->ReadRegister(PCReg) + 4); 
     machine->WriteRegister(NextPCReg, machine->ReadRegister(NextPCReg) + 4); 
@@ -58,7 +65,6 @@ void StartProcess(int spaceId)
     AddrSpace *space = AddrSpaces[spaceId];
     space->InitRegisters(); // set the initial register values 
     space->RestoreState();  // load page table register 
- 
     machine->Run();   // jump to the user progam 
     ASSERT(FALSE);  // machine->Run never returns; 
            // the address space exits by doing the syscall "exit" 
@@ -72,13 +78,13 @@ ExceptionHandler(ExceptionType which)
     if ((which == SyscallException)) { 
         switch(type){ 
             case SC_Halt:{ 
-                printf("CurrentThreadId: %d Name: %s, Execute system call of Halt() \n",(currentThread->space)->GetSpaceId(),currentThread->getName());
+                printf("CurrentThreadId: %d Name: %s, Execute system call of Halt() \n",(currentThread->space)->GetspaceID(),currentThread->getName());
                 DEBUG('a', "Shutdown, initiated by user program.\n"); 
                 interrupt->Halt(); 
                 break; 
             } 
             case SC_Exec:{  
-                printf("CurrentThreadId: %d Name: %s, Execute system call of Exec() \n",(currentThread->space)->GetSpaceId(),currentThread->getName());
+                printf("CurrentThreadId: %d Name: %s, Execute system call of Exec() \n",(currentThread->space)->GetspaceID(),currentThread->getName());
                 //DEBUG('f',"Execute system call Exec()\n"); 
                 //read argument (i.e. filename) of Exec(filename) 
                 char filename[128];  
@@ -415,13 +421,6 @@ ExceptionHandler(ExceptionType which)
                     AdvancePC();                
                     break;    
                 }  
-                else if (filename[0] == 'p' && filename[1] == 's')   //ps 
-                { 
-                    scheduler->PrintThreads(); 
-                    machine->WriteRegister(2,127);   // 
-                    AdvancePC();                
-                    break;    
-                } 
                 else if (strstr(filename,"help") != NULL)   //fdisk 
                 { 
                     printf("Commands and Usage:\n"); 
@@ -466,7 +465,7 @@ ExceptionHandler(ExceptionType which)
                 //call open() in FILESYS, see filesys.h 
                 OpenFile* executable = fileSystem->Open(filename);
                 if (executable == NULL) { 
-                    //printf("\nUnable to open file %s\n", filename); 
+                    printf("\nUnable to open file %s\n", filename); 
                     DEBUG('f',"\nUnable to open file %s\n", filename); 
                     machine->WriteRegister(2,-1);                    
                     AdvancePC();   
@@ -474,9 +473,12 @@ ExceptionHandler(ExceptionType which)
                     //return; 
                 }
                  //new address space 
-                space = new AddrSpace(executable);   
+                AddrSpace *space = new AddrSpace(executable);  
+                int id = space->GetspaceID();
+                AddrSpaces[id] = space;
+                space->Print(); 
                 delete executable;   // close file 
-                DEBUG('H',"Execute system call Exec(\"%s\"), it's SpaceId(pid) = %d \n",filename,space->getSpaceID()); 
+                DEBUG('H',"Execute system call Exec(\"%s\"), it's SpaceId(pid) = %d \n",filename,space->GetspaceID()); 
                 //new and fork thread 
                 char *forkedThreadName = filename; 
                 
@@ -487,12 +489,12 @@ ExceptionHandler(ExceptionType which)
                 //-----------------------------------------------              
                 Thread *thread = new Thread(forkedThreadName); 
                 //printf("exec -- new thread pid =%d\n",space->getSpaceID()); 
-                thread->Fork(StartProcess, space->getSpaceID()); 
+                thread->Fork(StartProcess, space->GetspaceID()); 
                 thread->space = space; 
-                space->Print();
-                printf("user process \"%s(%d)\" map to kernel thread \" %s \"\n",filename,space->getSpaceID(),forkedThreadName);
+                thread->UserProgramId = space->GetspaceID();
+                printf("user process \"%s(%d)\" map to kernel thread \" %s \"\n",filename,space->GetspaceID(),forkedThreadName);
                  //return spaceID 
-                machine->WriteRegister(2,space->getSpaceID()); 
+                machine->WriteRegister(2,space->GetspaceID()); 
                 //printf("Exec()--space->getSpaceID()=%d\n",space->getSpaceID()); 
                 
                 //========================================================= 
@@ -513,7 +515,7 @@ ExceptionHandler(ExceptionType which)
                 break;
             }
             case SC_Join: { 
-                printf("CurrentThreadId: %d Name: %s, Execute system call of Join() \n",(currentThread->space)->GetSpaceId(),currentThread->getName());
+                printf("CurrentThreadId: %d Name: %s, Execute system call of Join() \n",(currentThread->space)->GetspaceID(),currentThread->getName());
                 int SpaceId=machine->ReadRegister(4);  //ie. ThreadId or SpaceId 
                 currentThread->Join(SpaceId); 
                 //返回 Joinee 的退出码waitProcessExitCode 
@@ -522,7 +524,7 @@ ExceptionHandler(ExceptionType which)
                 break; 
             }
             case SC_Exit: { 
-                printf("CurrentThreadId: %d Name: %s, Execute system call of Exit() \n",(currentThread->space)->GetSpaceId(),currentThread->getName());
+                printf("CurrentThreadId: %d Name: %s, Execute system call of Exit() \n",(currentThread->space)->GetspaceID(),currentThread->getName());
                 int ExitStatus=machine->ReadRegister(4);  
                 machine->WriteRegister(2,ExitStatus); 
                 currentThread->setExitStatus(ExitStatus); 
@@ -537,7 +539,7 @@ ExceptionHandler(ExceptionType which)
                 break; 
             }
             case SC_Yield:{ 
-                printf("CurrentThreadId: %d Name: %s, Execute system call of Yield() \n",(currentThread->space)->GetSpaceId(),currentThread->getName());
+                printf("CurrentThreadId: %d Name: %s, Execute system call of Yield() \n",(currentThread->space)->GetspaceID(),currentThread->getName());
                 currentThread->Yield();     
                 AdvancePC();            
                 break; 
@@ -545,25 +547,22 @@ ExceptionHandler(ExceptionType which)
             /* Create a Nachos file, with "name" */ 
             //void Create(char *name); 
             case SC_Create: { 
-                printf("CurrentThreadId: %d Name: %s, Execute system call of Create() \n",(currentThread->space)->GetSpaceId(),currentThread->getName());
+                printf("CurrentThreadId: %d Name: %s, Execute system call of Create() \n",(currentThread->space)->GetspaceID(),currentThread->getName());
                 int base=machine->ReadRegister(4); 
                 int value; 
                 int count=0; 
                 char *FileName= new char[128]; 
+            
                 do{ 
                     machine->ReadMem(base+count,1,&value); 
                     FileName[count]=*(char*)&value; 
                     count++; 
                 } while(*(char*)&value!='\0'&&count<128); 
-                int fileDescriptor = OpenForWrite(FileName);     
-                if (fileDescriptor == -1)  
+                //when calling Create(),  thread go to sleep, waked up when I/O finish 
+                if(!fileSystem->Create(FileName,0))  //call Create() in FILESYS,see filesys.h 
                     printf("create file %s failed!\n",FileName); 
                 else 
-                printf("create file %s succeed!, the file id is %d\n",FileName,fileDescriptor); 
-                
-                Close(fileDescriptor);          
-                    //machine->WriteRegister(2,fileDescriptor); 
-                        
+                    DEBUG('f',"create file %s succeed!\n",FileName);             
                 AdvancePC(); 
                 break;
             }
@@ -572,7 +571,7 @@ ExceptionHandler(ExceptionType which)
             */ 
             //OpenFileId Open(char *name);  //int OpenFileId
             case SC_Open: { 
-                printf("CurrentThreadId: %d Name: %s, Execute system call of Open() \n",(currentThread->space)->GetSpaceId(),currentThread->getName());
+                printf("CurrentThreadId: %d Name: %s, Execute system call of Open() \n",(currentThread->space)->GetspaceID(),currentThread->getName());
                 int base=machine->ReadRegister(4); 
                 int value; 
                 int count=0; 
@@ -606,7 +605,7 @@ ExceptionHandler(ExceptionType which)
             /* Write "size" bytes from "buffer" to the open file. */ 
             //void Write(char *buffer, int size, OpenFileId id); 
             case SC_Write: { 
-                printf("CurrentThreadId: %d Name: %s, Execute system call of Write() \n",(currentThread->space)->GetSpaceId(),currentThread->getName());
+                printf("CurrentThreadId: %d Name: %s, Execute system call of Write() \n",(currentThread->space)->GetspaceID(),currentThread->getName());
                 int base =machine->ReadRegister(4);  //buffer 
                 int size=machine->ReadRegister(5);   //bytes written to file  
                 int fileId=machine->ReadRegister(6); //fd  
@@ -625,21 +624,21 @@ ExceptionHandler(ExceptionType which)
                 } while((*(char*)&value!='\0') && (count<size)); 
                 buffer[size]='\0'; 
             
-                OpenFile*  openfile = currentThread->space->getFileId(fileId);  
+                openfile = currentThread->space->getFileId(fileId);  
                 //printf("openfile =%d\n",openfile); 
                 if (openfile == NULL) 
-                    { 
+                { 
                     printf("Failed to Open file \"%d\" .\n",fileId);                      
                     AdvancePC(); 
                     break; 
-                    }    
+                }    
                     
-                    if (fileId ==1 || fileId ==2) 
-                    { 
+                if (fileId ==1 || fileId ==2) 
+                { 
                     openfile->WriteStdout(buffer,size); 
                     delete [] buffer; 
-                AdvancePC(); 
-                break; 
+                    AdvancePC(); 
+                    break; 
                 }  
                         
                 int WritePosition = openfile->Length(); 
@@ -676,7 +675,7 @@ ExceptionHandler(ExceptionType which)
             */ 
             //int Read(char *buffer, int size, OpenFileId id); 
             case SC_Read: { 
-                printf("CurrentThreadId: %d Name: %s, Execute system call of Read() \n",(currentThread->space)->GetSpaceId(),currentThread->getName());
+                printf("CurrentThreadId: %d Name: %s, Execute system call of Read() \n",(currentThread->space)->GetspaceID(),currentThread->getName());
                 int base =machine->ReadRegister(4); 
                 int size  = machine->ReadRegister(5); 
                 int fileId=machine->ReadRegister(6); 
@@ -718,6 +717,7 @@ ExceptionHandler(ExceptionType which)
             /* Close the file, we're done reading and writing to it. */ 
             //void Close(OpenFileId id); 
             case SC_Close: { 
+                printf("CurrentThreadId: %d Name: %s, Execute system call of Close() \n",(currentThread->space)->GetspaceID(),currentThread->getName());
                 int fileId =machine->ReadRegister(4); 
                 OpenFile* openfile = currentThread->space->getFileId(fileId); 
                 if (openfile != NULL) 
@@ -736,28 +736,6 @@ ExceptionHandler(ExceptionType which)
                 AdvancePC(); 
                 break; 
              }  
-            /* Create a Nachos file, with "name" */ 
-            //void Create(char *name); 
-            case SC_Create: { 
-                printf("CurrentThreadId: %d Name: %s, Execute system call of Create() \n",(currentThread->space)->GetSpaceId(),currentThread->getName());
-                int base=machine->ReadRegister(4); 
-                int value; 
-                int count=0; 
-                char *FileName= new char[128]; 
-            
-                do{ 
-                    machine->ReadMem(base+count,1,&value); 
-                    FileName[count]=*(char*)&value; 
-                    count++; 
-                } while(*(char*)&value!='\0'&&count<128); 
-                //when calling Create(),  thread go to sleep, waked up when I/O finish 
-                if(!fileSystem->Create(FileName,0))  //call Create() in FILESYS,see filesys.h 
-                    printf("create file %s failed!\n",FileName); 
-                else 
-                    DEBUG('f',"create file %s succeed!\n",FileName);             
-                AdvancePC(); 
-                break;
-            }
             default: 
                 printf("Unexpected system call %d\n", type); 
                 break;

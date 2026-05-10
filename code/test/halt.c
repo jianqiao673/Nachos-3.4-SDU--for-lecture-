@@ -1,25 +1,18 @@
-/* halt.c
- *	Simple program to test whether running a user program works.
- *	
- *	Just do a "syscall" that shuts down the OS.
- *
- * 	NOTE: for some reason, user programs with global data structures 
- *	sometimes haven't worked in the Nachos environment.  So be careful
- *	out there!  One option is to allocate data structures as 
- * 	automatics within a procedure, but if you do this, you have to
- *	be careful to allocate a big enough stack to hold the automatics!
- */
-
 #include "syscall.h"
 
-int
-main()
+int main()
 {
-    char prompt[2];
-    prompt[0] = '-';
-    prompt[1] = '-';
+    char *msg = "Halt program start...\n";
 
-    Write(prompt, 1, "I will shut down!\n");
+    /* 参数解释：
+       1. 缓冲区地址 (msg)
+       2. 字符长度 (22, 包含换行)
+       3. 文件句柄 (1 代表 ConsoleOutput，即打印到屏幕)
+    */
+    Write(msg, 22, 1);
+
     Halt();
-    /* not reached */
+
+    /* 永远不会执行到这里 */
+    return 0;
 }

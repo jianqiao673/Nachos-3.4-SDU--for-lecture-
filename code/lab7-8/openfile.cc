@@ -31,7 +31,7 @@ OpenFile::OpenFile(int sector)
     seekPosition = 0;
     hdrSector=sector;   //打开文件的文件头所在的扇区号 
 }
-#ifdef USER_PROGRAM
+#ifdef FILESYS
 OpenFile::OpenFile(char* type) {}
 #endif
 //----------------------------------------------------------------------
@@ -74,13 +74,8 @@ OpenFile::Seek(int position)
 int
 OpenFile::Read(char *into, int numBytes)
 {
-   int result ;
-    #ifdef FILESYS
-    result = ReadAt(into, numBytes, 0);
-    #else
     int result = ReadAt(into, numBytes, seekPosition);
     seekPosition += result;
-    #endif
     return result;
 }
 
@@ -216,7 +211,7 @@ OpenFile::Length()
 }
 
 
-#ifdef USER_PROGRAM
+#ifdef FILESYS
 int 
 OpenFile::WriteStdout(char *from, int numBytes) {  
        int file = 1;  //stdout 

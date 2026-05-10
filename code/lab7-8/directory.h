@@ -53,7 +53,7 @@ class Directory {
     Directory(int size); 		// Initialize an empty directory
 					// with space for "size" files
     ~Directory();			// De-allocate the directory
-    
+
     void FetchFrom(OpenFile *file);  	// Init directory contents from disk
     void WriteBack(OpenFile *file);	// Write modifications to 
 					// directory contents back to disk
@@ -70,7 +70,7 @@ class Directory {
     void Print();			// Verbose print of the contents
 					//  of the directory -- all the file
 					//  names and their contents.
-
+    bool Rename(char *source, char *dest); //重命名文件
   private:
     int tableSize;			// Number of directory entries
     DirectoryEntry *table;		// Table of pairs: 

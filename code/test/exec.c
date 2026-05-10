@@ -1,7 +1,7 @@
 #include"syscall.h"
 int main()
 {
-    int pid = Exec("../test/halt.noff");
+    int pid = Exec("yield.noff");
     Join(pid);
-    Exit();
+    Exit(0);
 }

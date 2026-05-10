@@ -183,3 +183,12 @@ void Scheduler::deleteTerminatedThread(int SpaceId){
         }
     }
 }
+
+void Scheduler::emptyList(List *list)
+{
+    int length = list->ListLength();
+    for(int i = 0; i < length; i++){
+        Thread *thread = (Thread *)list->GetItem(i);
+        list->RemoveItem(thread);
+    }
+}

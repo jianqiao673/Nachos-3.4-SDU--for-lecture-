@@ -31,7 +31,7 @@ class Scheduler {
     List* getWaitingList(); //返回调度器的等待队列
     List* getTerminatedList(); //返回调度器的终止队列
     void deleteTerminatedThread(int SpaceId); //删除终止队列中地址空间ID为SpaceId的线程
-
+    void emptyList(List *list); //清空进程队列
   private:
     List *readyList;  		// queue of threads that are ready to run,
 		List *waitingList;    //等待线程队列，线程调用Join()后进入该队列，直到被等待的线程退出

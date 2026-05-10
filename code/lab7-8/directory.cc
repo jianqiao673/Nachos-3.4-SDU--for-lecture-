@@ -24,7 +24,7 @@
 #include "utility.h"
 #include "filehdr.h"
 #include "directory.h"
-
+#include "system.h"
 //----------------------------------------------------------------------
 // Directory::Directory
 // 	Initialize a directory; initially, the directory is completely
@@ -165,15 +165,13 @@ Directory::Remove(char *name)
 // Directory::List
 // 	List all the file names in the directory. 
 //----------------------------------------------------------------------
-
 extern char *setStrLength(char *str, int len); 
 extern char *numFormat(int num); 
-
 void
 Directory::List()
 {
     FileHeader *hdr = new FileHeader; 
-        
+    
     int size = 0; 
     printf("=============================================================\n"); 
     printf("Name       Size  Sectors  SectorList\n"); 
@@ -194,17 +192,17 @@ Directory::List()
     printf("%s", setStrLength(numFormat(fileSectors),6)); 
     printf("%s\n", hdr->getDataSectors()); 
         } 
-    printf("-------------------------------------------------------------\n");   
+    printf("-------------------------------------------------------------\n");  
     // size:not include the file header 
     //printf("Available Disk Space: %s bytes",numFormat(32*32*128 - size)); 
     //printf(" (%s KB)\n\n",numFormat((32*32*128 - size)/1024)); 
-        
+    FileSystem *fileSystem = new FileSystem(false);
     BitMap *freeMap =  fileSystem->getBitMap(); 
     int freeSize = freeMap->NumClear() * 128; 
     printf("Available Disk Space: %s bytes",numFormat(freeSize)); 
     printf(" (%s KB)\n\n",numFormat(freeSize/1024)); 
         
-    delete hdr;
+    delete hdr; 
 }
 
 //----------------------------------------------------------------------
@@ -229,3 +227,13 @@ Directory::Print()
     delete hdr;
 }
 
+bool Directory::Rename(char *source, char *dest)
+{
+    int i = FindIndex(source); 
+    if (i == -1) 
+        return FALSE; 
+    if (FindIndex(dest) != -1) 
+        return FALSE; 
+    strncpy(table[i].name, dest, FileNameMaxLen); 
+    return TRUE;
+}

@@ -66,7 +66,7 @@ extern void ThreadTest(void), Copy(char *unixFile, char *nachosFile);
 extern void Print(char *file), PerformanceTest(void);
 extern void StartProcess(char *file), ConsoleTest(char *in, char *out);
 extern void MailTest(int networkID);
-extern void SynchTest(void);
+//extern void SynchTest(void);
 
 //----------------------------------------------------------------------
 // main
@@ -92,10 +92,10 @@ main(int argc, char **argv)
     (void) Initialize(argc, argv);
     
 #ifdef THREADS
-    ThreadTest();
-#if 1
-    SynchTest();
-#endif 
+	ThreadTest();
+// #if 1
+//     SynchTest();
+// #endif 
 #endif
 
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {

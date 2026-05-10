@@ -4,4 +4,4 @@ arch/unknown-i386-linux/depends/synchdisk.d arch/unknown-i386-linux/objects/sync
  ../threads/synch.h ../threads/thread.h ../threads/utility.h \
  ../machine/machine.h ../machine/translate.h ../machine/disk.h \
  ../userprog/addrspace.h ../filesys/filesys.h ../filesys/openfile.h \
- ../userprog/bitmap.h ../filesys/openfile.h ../threads/list.h
+ ../threads/list.h

@@ -15,9 +15,16 @@ CCFILES += addrspace.cc\
 	console.cc\
 	machine.cc\
 	mipssim.cc\
-	translate.cc
+	translate.cc\
+	list.cc\
+	thread.cc\
+	directory.cc\
+	filesys.cc\
+	system.cc\
+	openfile.cc
 
-INCPATH += -I../lab7-8 -I../bin -I../userprog -I../filesys
+
+INCPATH += -I. -I../lab7-8 -I../bin -I../userprog -I../filesys
 
 ifdef MAKE_FILE_FILESYS_LOCAL
 DEFINES += -DUSER_PROGRAM

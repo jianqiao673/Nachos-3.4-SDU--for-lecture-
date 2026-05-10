@@ -65,7 +65,7 @@ class OpenFile {
   public:
     OpenFile(int sector);		// Open a file whose header is located
 					// at "sector" on the disk
-	#ifdef USER_PROGRAM
+	#ifdef FILESYS
 	OpenFile(char* type);	//打开标准输入输出
 	#endif
     ~OpenFile();			// Close the file
@@ -88,7 +88,7 @@ class OpenFile {
 					// file (this interface is simpler 
 					// than the UNIX idiom -- lseek to 
 					// end of file, tell, lseek back 
-    #ifdef USER_PROGRAM
+    #ifdef FILESYS
 	int WriteStdout(char *from, int numBytes); //向标准输出写数据
 	int ReadStdin(char *into, int numBytes); //从标准输入读数据
 	#endif
