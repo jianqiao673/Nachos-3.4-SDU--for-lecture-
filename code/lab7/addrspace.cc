@@ -169,16 +169,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
             fileAddr += amount;
         }   
     }
-    #ifdef USER_PROGRAM
-    for (int i=3;i<10;i++)    //up to open 10 file for each process 
-       fileDescriptor[i] = NULL;  
-        
-    OpenFile *StdinFile = new OpenFile("stdin"); 
-    OpenFile *StdoutFile = new OpenFile("stdout"); 
-    fileDescriptor[0] =  StdoutFile; 
-    fileDescriptor[1] =  StdoutFile; 
-    fileDescriptor[2] =  StdoutFile; 
-    #endif  
+
 }
 
 //----------------------------------------------------------------------
@@ -194,6 +185,11 @@ AddrSpace::~AddrSpace()
     ThreadMap[spaceID] = false; // 释放PID
     AddrSpaces[spaceID] = NULL; // 清除地址空间映射
     delete[] pageTable;
+}
+
+int AddrSpace::GetspaceID()
+{
+    return spaceID;
 }
 
 //----------------------------------------------------------------------
@@ -253,7 +249,6 @@ void AddrSpace::RestoreState()
     machine->pageTableSize = numPages;
 }
 
-
 void AddrSpace::Print()
 {
     printf("page table dump:  %d pages  in total\n", numPages);  
@@ -264,32 +259,3 @@ void AddrSpace::Print()
     } 
     printf("============================================\n\n");
 }
-
-int AddrSpace::GetspaceID()
-{
-    return spaceID;
-}
-#ifdef USER_PROGRAM
-int AddrSpace::getFileDescriptor(OpenFile * openfile) 
- { 
-    for (int i=3;i<10;i++) 
-    { 
-      if (fileDescriptor[i] == NULL) 
-        { 
-           fileDescriptor[i] = openfile; 
-           return i; 
-        }  //if       
-    }  //for 
-    return -1; 
- } 
-
- OpenFile* AddrSpace::getFileId(int fd) 
-{ 
-   return fileDescriptor[fd]; 
-} 
-
-void AddrSpace::releaseFileDescriptor(int fd) 
-{ 
-   fileDescriptor[fd] = NULL; 
-} 
-#endif
